@@ -1,0 +1,28 @@
+{
+  "name": "gist-sync",
+  "version": "0.1.0.0",
+  "description": "",
+  "keywords": [],
+  "author": "cologler",
+  "author_email": "skyoflw@gmail.com",
+  "url": "https://github.com/Cologler/gist-sync-python",
+  "license": "MIT License",
+  "classifiers": [],
+  "scripts": [],
+  "entry_points": {
+    "console_scripts": [
+      "gistsync=gistsync.main:main"
+    ]
+  },
+  "zip_safe": false,
+  "include_package_data": true,
+  "setup_requires": [],
+  "install_requires": [
+    "requests",
+    "fsoopify",
+    "docopt",
+    "pygithub",
+    "jasily"
+  ],
+  "tests_require": []
+}
