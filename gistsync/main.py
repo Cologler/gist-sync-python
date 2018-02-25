@@ -7,6 +7,7 @@
 
 '''
 Usage:
+   gistsync register <token>
    gistsync init-all [--token=<token>]
    gistsync init <gist-id> [--token=<token>]
    gistsync sync [--token=<token>]
@@ -17,6 +18,7 @@ import sys
 import traceback
 import tempfile
 from abc import abstractmethod
+from pathlib import Path
 
 import requests
 import docopt
@@ -25,7 +27,13 @@ import fsoopify
 from fsoopify import DirectoryInfo, FileInfo
 from jasily.io.hash import Sha1Algorithm
 
-CONFIG_NAME = '.gist.json'
+SYNC_CONFIG_NAME = '.gistsync.json'
+GIST_CONFIG_NAME = '.gist.json'
+
+def get_sync_config_file() -> FileInfo:
+    home = str(Path.home())
+    file_info = FileInfo(os.path.join(home, SYNC_CONFIG_NAME))
+    return file_info
 
 class ConfigBuilder:
     def __init__(self, gist):
@@ -33,7 +41,7 @@ class ConfigBuilder:
         self._files = []
 
     def dump(self, dir_info: DirectoryInfo):
-        file_info = dir_info.get_fileinfo(CONFIG_NAME)
+        file_info = dir_info.get_fileinfo(GIST_CONFIG_NAME)
         file_info.dump({
             'id': self._gist.id,
             'updated_at': self._gist.updated_at.isoformat(timespec='seconds'),
@@ -47,15 +55,32 @@ class ConfigBuilder:
         })
 
 
-class Task:
-    def __init__(self):
-        self.token = None
-        self._github_client = None
-        self._gists = None
+class ITask:
+    def __init__(self, opt):
+        self._opt = opt
 
     @abstractmethod
     def execute(self):
         raise NotImplementedError
+
+class Task(ITask):
+    def __init__(self, opt):
+        super().__init__(opt)
+        self._github_client = None
+        self._gists = None
+
+    @property
+    def token(self):
+        tk = self._opt['--token']
+        if tk:
+            return tk
+        conf = get_sync_config_file()
+        if conf.is_exists():
+            tk = conf.load().get('token')
+        if tk:
+            return tk
+        print('need access token.')
+        exit()
 
     @property
     def github_client(self):
@@ -120,7 +145,7 @@ class Task:
         config_builder = ConfigBuilder(gist)
         update_content = {}
         for item in dir_info.list_items():
-            if item.path.name == CONFIG_NAME:
+            if item.path.name == GIST_CONFIG_NAME:
                 continue
             if isinstance(item, FileInfo):
                 update_content[item.path.name] = github.InputFileContent(item.read_text())
@@ -141,7 +166,7 @@ class Task:
 
     def _sync_node(self, node_info):
         if isinstance(node_info, DirectoryInfo):
-            config = node_info.get_fileinfo(CONFIG_NAME)
+            config = node_info.get_fileinfo(GIST_CONFIG_NAME)
             if not config.is_file():
                 return
             d = config.load()
@@ -163,13 +188,14 @@ class SyncTask(Task):
 
 
 class InitTask(Task):
-    def __init__(self, gist_id):
-        super().__init__()
-        self._gist_id = gist_id
+    @property
+    def gist_id(self):
+        return self._opt['<gist-id>']
 
     def execute(self):
+        gist_id = self.gist_id
         for gist in self._get_gists():
-            if self._gist_id in gist.id:
+            if gist_id in gist.id:
                 print(f'match {gist}')
                 self._pull_gist(gist)
 
@@ -180,15 +206,27 @@ class InitAllTask(Task):
             self._pull_gist(gist)
 
 
-def create_task(opt):
-    #print(opt)
-    if opt['init-all']:
-        task = InitAllTask()
-    if opt['init']:
-        task = InitTask(opt['<gist-id>'])
-    if opt['sync']:
-        task = SyncTask()
-    task.token = opt['--token']
+class RegisterTask(ITask):
+    def __init__(self, opt):
+        self._opt = opt
+
+    def execute(self):
+        token = self._opt['<token>']
+        file_info = get_sync_config_file()
+        file_info.dump({
+            'token': token
+        })
+
+
+def create_task(opt) -> ITask:
+    if opt['register']:
+        task = RegisterTask(opt)
+    elif opt['init-all']:
+        task = InitAllTask(opt)
+    elif opt['init']:
+        task = InitTask(opt)
+    elif opt['sync']:
+        task = SyncTask(opt)
     return task
 
 def main(argv=None):
