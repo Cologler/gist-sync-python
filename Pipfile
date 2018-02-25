@@ -10,6 +10,8 @@ name = "pypi"
 requests = "*"
 fsoopify = "*"
 docopt = "*"
+pygithub = "*"
+jasily = "*"
 
 
 [dev-packages]
