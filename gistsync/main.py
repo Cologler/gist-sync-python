@@ -85,9 +85,6 @@ class Task:
         if not os.path.isdir(rpath):
             os.mkdir(rpath)
 
-    def _save_config(self, gist, dir_info: DirectoryInfo):
-        ConfigBuilder(gist).dump(dir_info)
-
     def _pull_gist(self, gist, dir_info: DirectoryInfo=None):
         with tempfile.TemporaryDirectory('-gistsync') as tempdir_name:
             tempdir_info = DirectoryInfo(tempdir_name)
@@ -98,11 +95,13 @@ class Task:
                 response = requests.get(gist_file.raw_url)
                 try:
                     tempfile_info.write_bytes(response.content)
+                    config_builder.add_file(tempfile_info)
                 except OSError as err:
                     # some filename only work on linux.
                     print(err)
                     print(f'cannot sync gist: {gist.id}')
                     return
+            config_builder.dump(tempdir_info)
 
             if dir_info is None:
                 dir_info = DirectoryInfo(self._get_abs_path(gist.id))
@@ -116,8 +115,6 @@ class Task:
                 if file_info.is_file():
                     file_info.delete()
                 item.copy_to(file_info.path)
-
-            config_builder.dump(tempdir_info)
 
     def _push_gist(self, gist, dir_info: DirectoryInfo):
         config_builder = ConfigBuilder(gist)
@@ -150,7 +147,7 @@ class Task:
             d = config.load()
             gist = self._get_gist(d['id'])
             if gist.updated_at.isoformat(timespec='seconds') == d['updated_at']:
-                if self._is_changed(config, node_info):
+                if self._is_changed(d, node_info):
                     return self._push_gist(gist, node_info)
                 else:
                     print(f'{node_info.path.name}: nothing was changed after last sync.')
