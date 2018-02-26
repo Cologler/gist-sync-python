@@ -17,6 +17,7 @@ import os
 import sys
 import traceback
 import tempfile
+import logging
 from abc import abstractmethod
 from pathlib import Path
 
@@ -72,15 +73,14 @@ class Task(ITask):
     @property
     def token(self):
         tk = self._opt['--token']
-        if tk:
-            return tk
-        conf = get_sync_config_file()
-        if conf.is_exists():
-            tk = conf.load().get('token')
-        if tk:
-            return tk
-        print('need access token.')
-        exit()
+        if not tk:
+            conf = get_sync_config_file()
+            if conf.is_exists():
+                tk = conf.load().get('token')
+        if not tk:
+            self._get_logger(None).error('need access token.')
+            exit()
+        return tk
 
     @property
     def github_client(self):
@@ -98,10 +98,19 @@ class Task(ITask):
 
     def _get_gist(self, gist_id, newest=False):
         if self._gists is None or newest:
-            gist = self.github_client.get_gist(gist_id)
+            try:
+                gist = self.github_client.get_gist(gist_id)
+            except github.UnknownObjectException:
+                return None
         if self._gists is not None and gist is not None:
             self._gists[gist.id] = gist
         return gist
+
+    def _get_logger(self, gist_id):
+        if gist_id is None:
+            return logging.getLogger(f'gist-sync')
+        else:
+            return logging.getLogger(f'Gist({gist_id})')
 
     def _get_abs_path(self, rpath):
         return rpath
@@ -111,6 +120,7 @@ class Task(ITask):
             os.mkdir(rpath)
 
     def _pull_gist(self, gist, dir_info: DirectoryInfo=None):
+        logger = self._get_logger(gist.id)
         with tempfile.TemporaryDirectory('-gistsync') as tempdir_name:
             tempdir_info = DirectoryInfo(tempdir_name)
             config_builder = ConfigBuilder(gist)
@@ -123,8 +133,7 @@ class Task(ITask):
                     config_builder.add_file(tempfile_info)
                 except OSError as err:
                     # some filename only work on linux.
-                    print(err)
-                    print(f'cannot sync gist: {gist.id}')
+                    logger.error(f'cannot sync gist: {err}')
                     return
             config_builder.dump(tempdir_info)
 
@@ -170,13 +179,19 @@ class Task(ITask):
             if not config.is_file():
                 return
             d = config.load()
-            gist = self._get_gist(d['id'])
+            gist_id = d['id']
+            logger = self._get_logger(gist_id)
+            gist = self._get_gist(gist_id)
+            is_changed = self._is_changed(d, node_info)
             if gist.updated_at.isoformat(timespec='seconds') == d['updated_at']:
-                if self._is_changed(d, node_info):
+                if is_changed:
                     return self._push_gist(gist, node_info)
                 else:
-                    print(f'{node_info.path.name}: nothing was changed after last sync.')
+                    logger.info(f'{node_info.path.name}: nothing was changed after last sync.')
                     return
+            elif is_changed:
+                logger.info('conflict: local gist and remote gist already changed.')
+                return
             else:
                 return self._pull_gist(gist, node_info)
 
@@ -194,10 +209,24 @@ class InitTask(Task):
 
     def execute(self):
         gist_id = self.gist_id
+        logger = self._get_logger(None)
+
+        def on_found(gist):
+            logger.info(f'match {gist}')
+            self._pull_gist(gist)
+
+        gist = self._get_gist(gist_id)
+        if gist is not None:
+            on_found(gist)
+            return
+
+        found = False
         for gist in self._get_gists():
             if gist_id in gist.id:
-                print(f'match {gist}')
-                self._pull_gist(gist)
+                on_found(gist)
+                found = True
+        if not found:
+            logger.error('no match gists found.')
 
 
 class InitAllTask(Task):
@@ -233,6 +262,7 @@ def main(argv=None):
     if argv is None:
         argv = sys.argv
     try:
+        logging.basicConfig(level=logging.INFO)
         opt = docopt.docopt(__doc__)
         task = create_task(opt)
         task.execute()
