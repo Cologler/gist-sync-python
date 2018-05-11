@@ -19,7 +19,6 @@ import traceback
 import tempfile
 import logging
 from abc import abstractmethod
-from pathlib import Path
 
 import requests
 import docopt
@@ -28,13 +27,20 @@ import fsoopify
 from fsoopify import DirectoryInfo, FileInfo
 from jasily.io.hash import Sha1Algorithm
 
-SYNC_CONFIG_NAME = '.gistsync.json'
+from gistsync.cmd import cmd, invoke
+from gistsync.global_settings import GlobalSettings
+
+SETTINGS = GlobalSettings()
+
 GIST_CONFIG_NAME = '.gist.json'
 
-def get_sync_config_file() -> FileInfo:
-    home = str(Path.home())
-    file_info = FileInfo(os.path.join(home, SYNC_CONFIG_NAME))
-    return file_info
+class OptionsProxy:
+    def __init__(self, opt):
+        self._data = opt
+
+    @property
+    def token(self):
+        return self._data['<token>']
 
 class ConfigBuilder:
     def __init__(self, gist):
@@ -72,11 +78,7 @@ class Task(ITask):
 
     @property
     def token(self):
-        tk = self._opt['--token']
-        if not tk:
-            conf = get_sync_config_file()
-            if conf.is_exists():
-                tk = conf.load().get('token')
+        tk = self._opt['--token'] or SETTINGS.token
         if not tk:
             self._get_logger(None).error('need access token.')
             exit()
@@ -234,28 +236,25 @@ class InitAllTask(Task):
         for gist in self._get_gists():
             self._pull_gist(gist)
 
-
-class RegisterTask(ITask):
-    def __init__(self, opt):
-        self._opt = opt
-
-    def execute(self):
-        token = self._opt['<token>']
-        file_info = get_sync_config_file()
-        file_info.dump({
-            'token': token
-        })
+@cmd('register')
+def register(opt_proxy: OptionsProxy):
+    SETTINGS.token = opt_proxy.token
 
 
 def create_task(opt) -> ITask:
-    if opt['register']:
-        task = RegisterTask(opt)
+    opt_proxy = OptionsProxy(opt)
+    if invoke(opt, opt_proxy):
+        return
+
     elif opt['init-all']:
         task = InitAllTask(opt)
+
     elif opt['init']:
         task = InitTask(opt)
+
     elif opt['sync']:
         task = SyncTask(opt)
+
     return task
 
 def main(argv=None):
@@ -265,7 +264,8 @@ def main(argv=None):
         logging.basicConfig(level=logging.INFO)
         opt = docopt.docopt(__doc__)
         task = create_task(opt)
-        task.execute()
+        if task:
+            task.execute()
     except Exception: # pylint: disable=W0703
         traceback.print_exc()
 
