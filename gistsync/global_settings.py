@@ -18,6 +18,9 @@ class GlobalSettings:
         self._fileinfo = FileInfo(os.path.join(home, SYNC_CONFIG_NAME))
         self._data = self._fileinfo.load() if self._fileinfo.is_exists() else {}
 
+    def _save(self):
+        self._fileinfo.dump(self._data)
+
     @property
     def token(self):
         return self._data.get('token')
@@ -25,4 +28,4 @@ class GlobalSettings:
     @token.setter
     def token(self, value):
         self._data['token'] = value
-        self._fileinfo.dump(self._data)
+        self._save()

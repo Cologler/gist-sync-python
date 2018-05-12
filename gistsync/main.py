@@ -22,12 +22,12 @@ import logging
 
 import docopt
 import github
-from fsoopify import DirectoryInfo, FileInfo
+from fsoopify import DirectoryInfo
 from jasily.io.hash import Sha1Algorithm
 
 from gistsync.cmd import cmd, invoke
 from gistsync.global_settings import GlobalSettings
-from gistsync.gist_ops import pull_gist, push_gist
+from gistsync.gist_ops import pull_gist, push_gist, check_changed
 
 SETTINGS = GlobalSettings()
 
@@ -95,51 +95,45 @@ class Context:
         else:
             return logging.getLogger(f'Gist({gist_id})')
 
-    def _get_abs_path(self, rpath):
-        return rpath
+    def get_local_dir(self, gist):
+        return DirectoryInfo(gist.id)
 
-    def pull_gist(self, gist, dir_info: DirectoryInfo=None):
-        if dir_info is None:
-            dir_info = DirectoryInfo(self._get_abs_path(gist.id))
+    def pull_gist(self, gist, dir_info: DirectoryInfo):
+        assert gist and dir_info
         logger = self.get_logger(gist.id)
         pull_gist(gist, dir_info, logger)
 
-    def _push_gist(self, gist, dir_info: DirectoryInfo):
+    def push_gist(self, gist, dir_info: DirectoryInfo):
         logger = self.get_logger(gist.id)
         push_gist(gist, dir_info, logger)
 
-    def _is_changed(self, config, dir_info: DirectoryInfo):
-        config_files = config['files']
-        if len(os.listdir(dir_info.path)) != len(config_files) + 1:
-            return True
-        for f in config_files:
-            file_path = os.path.join(dir_info.path, f['name'])
-            if not os.path.isfile(file_path):
-                return True
-            if Sha1Algorithm().calc_file(file_path) != f['sha1']:
-                return True
-
     def sync_node(self, node_info):
-        if isinstance(node_info, DirectoryInfo):
-            config = node_info.get_fileinfo(GIST_CONFIG_NAME)
-            if not config.is_file():
-                return
-            d = config.load()
-            gist_id = d['id']
-            logger = self.get_logger(gist_id)
-            gist = self.get_gist(gist_id)
-            is_changed = self._is_changed(d, node_info)
-            if gist.updated_at.isoformat(timespec='seconds') == d['updated_at']:
-                if is_changed:
-                    return self._push_gist(gist, node_info)
-                else:
-                    logger.info(f'{node_info.path.name}: nothing was changed since last sync.')
-                    return
-            elif is_changed:
-                logger.info('conflict: local gist and remote gist already changed.')
-                return
-            else:
-                return self.pull_gist(gist, node_info)
+        if not isinstance(node_info, DirectoryInfo):
+            return False
+
+        config = node_info.get_fileinfo(GIST_CONFIG_NAME)
+        if not config.is_file():
+            return False
+
+        gist_conf = config.load()
+        gist_id = gist_conf['id']
+        logger = self.get_logger(gist_id)
+        gist = self.get_gist(gist_id)
+        is_local_changed = check_changed(gist_conf, node_info)
+        is_cloud_changed = gist.updated_at.isoformat(timespec='seconds') != gist_conf['updated_at']
+
+        if is_cloud_changed and is_local_changed:
+            logger.info('conflict: local gist and remote gist already changed.')
+        elif is_local_changed:
+            logger.info('detected local is updated, pushing...')
+            self.push_gist(gist, node_info)
+        elif is_cloud_changed:
+            logger.info('detected cloud is updated, pulling...')
+            self.pull_gist(gist, node_info)
+        else:
+            logger.info(f'{node_info.path.name}: nothing was changed since last sync.')
+
+        return True
 
 @cmd('register')
 def register(context: Context):
@@ -148,7 +142,7 @@ def register(context: Context):
 @cmd('init-all')
 def init_all(context: Context):
     for gist in context.get_gists():
-        context.pull_gist(gist)
+        context.pull_gist(gist, context.get_local_dir(gist))
 
 @cmd('init')
 def init(context: Context):
@@ -157,7 +151,7 @@ def init(context: Context):
 
     def on_found(gist):
         logger.info(f'match {gist}')
-        context.pull_gist(gist)
+        context.pull_gist(gist, context.get_local_dir(gist))
 
     gist = context.get_gist(gist_id)
     if gist is not None:
@@ -174,7 +168,10 @@ def init(context: Context):
 
 @cmd('sync')
 def sync(context: Context):
-    for item in DirectoryInfo('.').list_items():
+    work_dir = DirectoryInfo('.')
+    if context.sync_node(work_dir):
+        return
+    for item in work_dir.list_items():
         context.sync_node(item)
 
 def main(argv=None):

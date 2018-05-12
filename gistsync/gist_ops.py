@@ -5,6 +5,7 @@
 #
 # ----------
 
+import os
 import tempfile
 
 import requests
@@ -77,3 +78,19 @@ def push_gist(gist, dir_info: DirectoryInfo, logger):
             config_builder.add_file(item)
     gist.edit(files=update_content)
     config_builder.dump(dir_info)
+
+def check_changed(config: dict, dir_info: DirectoryInfo):
+    '''
+    check whether the gist dir is changed.
+    return True if changed.
+    '''
+    config_files = config['files']
+    if len(os.listdir(dir_info.path)) != len(config_files) + 1:
+        # has one file named `.gist.json`
+        return True
+    for file in config_files:
+        file_path = os.path.join(dir_info.path, file['name'])
+        if not os.path.isfile(file_path):
+            return True
+        if Sha1Algorithm().calc_file(file_path) != file['sha1']:
+            return True
