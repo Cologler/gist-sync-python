@@ -15,7 +15,6 @@ Usage:
    gistsync sync [--token=<token>]
 '''
 
-import os
 import sys
 import traceback
 import logging
@@ -23,7 +22,6 @@ import logging
 import docopt
 import github
 from fsoopify import DirectoryInfo
-from jasily.io.hash import Sha1Algorithm
 
 from gistsync.cmd import cmd, invoke
 from gistsync.global_settings import GlobalSettings
@@ -108,6 +106,8 @@ class Context:
         push_gist(gist, dir_info, logger)
 
     def sync_node(self, node_info):
+        '''sync dir with cloud.'''
+
         if not isinstance(node_info, DirectoryInfo):
             return False
 
