@@ -7,15 +7,16 @@
 
 CMDMAP = {}
 
-def cmd(name):
+def cmd(*tokens):
     def _(cb):
-        CMDMAP[name] = cb
+        CMDMAP[tokens] = cb
         return cb
     return _
 
 def invoke(opt, *args):
-    for name in CMDMAP:
-        if opt[name]:
-            CMDMAP[name](*args)
+    for tokens in CMDMAP:
+        assert isinstance(tokens, tuple)
+        if all(opt[val] for val in tokens):
+            CMDMAP[tokens](*args)
             return True
     return False

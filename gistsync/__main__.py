@@ -5,10 +5,6 @@
 #
 # ----------
 
-import os
-import sys
-import traceback
-
 from gistsync.main import main
 
 if __name__ == '__main__':

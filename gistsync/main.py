@@ -9,7 +9,7 @@
 
 '''
 Usage:
-   gistsync register <token>
+   gistsync setup token <token>
    gistsync init-all [--token=<token>]
    gistsync init <gist-id> [--token=<token>]
    gistsync sync [--token=<token>]
@@ -42,6 +42,9 @@ class OptionsProxy:
     @property
     def gist_id(self):
         return self._data['<gist-id>']
+
+    def __repr__(self):
+        return repr(self._data)
 
 
 class Context:
@@ -135,7 +138,7 @@ class Context:
 
         return True
 
-@cmd('register')
+@cmd('setup', 'token')
 def register(context: Context):
     SETTINGS.token = context.opt_proxy.token
 
