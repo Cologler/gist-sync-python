@@ -71,6 +71,8 @@ def push_gist(gist, dir_info: DirectoryInfo, logger):
     config_builder = ConfigBuilder(gist)
     update_content = {}
     for item in dir_info.list_items():
+        if not isinstance(item, FileInfo):
+            continue
         if item.path.name == GIST_CONFIG_NAME:
             continue
         if isinstance(item, FileInfo):
@@ -85,9 +87,12 @@ def check_changed(config: dict, dir_info: DirectoryInfo):
     return True if changed.
     '''
     config_files = config['files']
-    if len(os.listdir(dir_info.path)) != len(config_files) + 1:
+
+    files = [z for z in dir_info.list_items() if isinstance(z, FileInfo)] # only files
+    if len(files) != len(config_files) + 1:
         # has one file named `.gist.json`
         return True
+
     for file in config_files:
         file_path = os.path.join(dir_info.path, file['name'])
         if not os.path.isfile(file_path):
