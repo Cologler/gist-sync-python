@@ -15,10 +15,13 @@ You can change the dir name, but **DO NOT** edit `.gist.json` which in dir.
 
 ``` txt
 Usage:
-   gistsync register <token>
-   gistsync init-all [--token=<token>]
-   gistsync init <gist-id> [--token=<token>]
-   gistsync sync [--token=<token>]
+    gistsync setup token <token>
+    gistsync init-all [--token=<token>]
+    gistsync init <gist-id> [--token=<token>]
+    gistsync sync [--token=<token>]
+    gistsync push [--token=<token>]
+    gistsync pull [--token=<token>]
+    gistsync check [--token=<token>]
 ```
 
 init gist, edit it, and sync!

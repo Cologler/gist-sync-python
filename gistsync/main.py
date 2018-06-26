@@ -9,10 +9,13 @@
 
 '''
 Usage:
-   gistsync setup token <token>
-   gistsync init-all [--token=<token>]
-   gistsync init <gist-id> [--token=<token>]
-   gistsync sync [--token=<token>]
+    gistsync setup token <token>
+    gistsync init-all [--token=<token>]
+    gistsync init <gist-id> [--token=<token>]
+    gistsync sync [--token=<token>]
+    gistsync push [--token=<token>]
+    gistsync pull [--token=<token>]
+    gistsync check [--token=<token>]
 '''
 
 import sys
@@ -25,11 +28,9 @@ from fsoopify import DirectoryInfo
 
 from gistsync.cmd import cmd, invoke
 from gistsync.global_settings import GlobalSettings
-from gistsync.gist_ops import pull_gist, push_gist, check_changed
+from gistsync.gist_dir import GistDir
 
 SETTINGS = GlobalSettings()
-
-GIST_CONFIG_NAME = '.gist.json'
 
 class OptionsProxy:
     def __init__(self, opt):
@@ -96,48 +97,6 @@ class Context:
         else:
             return logging.getLogger(f'Gist({gist_id})')
 
-    def get_local_dir(self, gist):
-        return DirectoryInfo(gist.id)
-
-    def pull_gist(self, gist, dir_info: DirectoryInfo):
-        assert gist and dir_info
-        logger = self.get_logger(gist.id)
-        pull_gist(gist, dir_info, logger)
-
-    def push_gist(self, gist, dir_info: DirectoryInfo):
-        logger = self.get_logger(gist.id)
-        push_gist(gist, dir_info, logger)
-
-    def sync_node(self, node_info):
-        '''sync dir with cloud.'''
-
-        if not isinstance(node_info, DirectoryInfo):
-            return False
-
-        config = node_info.get_fileinfo(GIST_CONFIG_NAME)
-        if not config.is_file():
-            return False
-
-        gist_conf = config.load()
-        gist_id = gist_conf['id']
-        logger = self.get_logger(gist_id)
-        gist = self.get_gist(gist_id)
-        is_local_changed = check_changed(gist_conf, node_info)
-        is_cloud_changed = gist.updated_at.isoformat(timespec='seconds') != gist_conf['updated_at']
-
-        if is_cloud_changed and is_local_changed:
-            logger.info('conflict: local gist and remote gist already changed.')
-        elif is_local_changed:
-            logger.info('detected local is updated, pushing...')
-            self.push_gist(gist, node_info)
-        elif is_cloud_changed:
-            logger.info('detected cloud is updated, pulling...')
-            self.pull_gist(gist, node_info)
-        else:
-            logger.info(f'{node_info.path.name}: nothing was changed since last sync.')
-
-        return True
-
 @cmd('setup', 'token')
 def register(context: Context):
     SETTINGS.token = context.opt_proxy.token
@@ -145,37 +104,67 @@ def register(context: Context):
 @cmd('init-all')
 def init_all(context: Context):
     for gist in context.get_gists():
-        context.pull_gist(gist, context.get_local_dir(gist))
+        gist_dir = GistDir(gist.id)
+        gist_dir.pull(context)
 
 @cmd('init')
 def init(context: Context):
     gist_id = context.opt_proxy.gist_id
     logger = context.get_logger(None)
 
-    def on_found(gist):
+    def resolve(gist):
         logger.info(f'match {gist}')
-        context.pull_gist(gist, context.get_local_dir(gist))
+        gist_dir = GistDir(gist.id)
+        gist_dir.pull(context)
 
     gist = context.get_gist(gist_id)
     if gist is not None:
-        on_found(gist)
-        return
+        return resolve(gist)
 
-    found = False
     for gist in context.get_gists():
         if gist_id in gist.id:
-            on_found(gist)
-            found = True
-    if not found:
-        logger.error('no match gists found.')
+            return resolve(gist)
+
+    logger.error('no match gists found.')
 
 @cmd('sync')
 def sync(context: Context):
-    work_dir = DirectoryInfo('.')
-    if context.sync_node(work_dir):
-        return
-    for item in work_dir.list_items():
-        context.sync_node(item)
+    gist_dir = GistDir('.')
+    if gist_dir.is_gist_dir():
+        gist_dir.sync(context)
+    else:
+        for item in gist_dir.list_items():
+            sub_gist_dir = GistDir(item.path)
+            if sub_gist_dir.is_gist_dir():
+                sub_gist_dir.sync(context)
+
+@cmd('pull')
+def pull(context: Context):
+    gist_dir = GistDir('.')
+    if gist_dir.is_gist_dir():
+        gist_dir.pull(context)
+    else:
+        logger = context.get_logger(None)
+        logger.error(f'{gist_dir.get_abs_path()} is not a gist dir.')
+
+@cmd('push')
+def push(context: Context):
+    gist_dir = GistDir('.')
+    if gist_dir.is_gist_dir():
+        gist_dir.push(context)
+    else:
+        logger = context.get_logger(None)
+        logger.error(f'{gist_dir.get_abs_path()} is not a gist dir.')
+
+@cmd('check')
+def check(context: Context):
+    gist_dir = GistDir('.')
+    if gist_dir.is_gist_dir():
+        gist_dir.check(context)
+    else:
+        logger = context.get_logger(None)
+        logger.error(f'{gist_dir.get_abs_path()} is not a gist dir.')
+
 
 def main(argv=None):
     if argv is None:

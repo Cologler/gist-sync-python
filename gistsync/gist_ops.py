@@ -13,7 +13,7 @@ import github
 from fsoopify import DirectoryInfo, FileInfo
 from jasily.io.hash import Sha1Algorithm
 
-GIST_CONFIG_NAME = '.gist.json'
+from gistsync.consts import GIST_CONFIG_NAME
 
 class ConfigBuilder:
     def __init__(self, gist):
