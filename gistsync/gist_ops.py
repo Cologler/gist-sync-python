@@ -20,11 +20,14 @@ class ConfigBuilder:
         self._gist = gist
         self._files = []
 
+    def get_updated_at(self):
+        return self._gist.updated_at.isoformat(timespec='seconds')
+
     def dump(self, dir_info: DirectoryInfo):
         file_info = dir_info.get_fileinfo(GIST_CONFIG_NAME)
         file_info.dump({
             'id': self._gist.id,
-            'updated_at': self._gist.updated_at.isoformat(timespec='seconds'),
+            'updated_at': self.get_updated_at(),
             'files': self._files
         })
 
@@ -64,6 +67,8 @@ def pull_gist(gist, dir_info: DirectoryInfo, logger):
             file_info = dir_info.get_fileinfo(item.path.name)
             item.copy_to(file_info.path)
 
+        logger.info(f'local updated from remote <{config_builder.get_updated_at()}>')
+
 def push_gist(gist, dir_info: DirectoryInfo, logger):
     '''push items from dir to gist.'''
     assert gist and dir_info and logger
@@ -80,6 +85,8 @@ def push_gist(gist, dir_info: DirectoryInfo, logger):
             config_builder.add_file(item)
     gist.edit(files=update_content)
     config_builder.dump(dir_info)
+
+    logger.info(f'remote updated at {config_builder.get_updated_at()}')
 
 def check_changed(config: dict, dir_info: DirectoryInfo):
     '''
