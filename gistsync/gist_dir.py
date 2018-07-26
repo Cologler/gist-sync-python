@@ -10,7 +10,7 @@ import os
 from fsoopify import DirectoryInfo
 
 from gistsync.consts import GIST_CONFIG_NAME
-from gistsync.gist_ops import pull_gist, push_gist, check_changed
+from gistsync.gist_ops import create_gist, pull_gist, push_gist, check_changed
 
 class GistDir(DirectoryInfo):
 
@@ -29,6 +29,12 @@ class GistDir(DirectoryInfo):
         if self._gist_conf is None:
             self._gist_conf = self._gist_conf_file.load()
         return self._gist_conf
+
+    def push_new(self, context):
+        user = context.get_user()
+        public = context.opt_proxy.public
+        logger = context.get_logger(None)
+        create_gist(user, self, public, logger)
 
     def push(self, context):
         gist_conf = self._load_gist_conf()

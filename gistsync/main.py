@@ -13,7 +13,7 @@ Usage:
     gistsync init-all [--token=<token>]
     gistsync init <gist-id> [--token=<token>]
     gistsync sync [--token=<token>]
-    gistsync push [--token=<token>]
+    gistsync push [--token=<token>] [--public]
     gistsync pull [--token=<token>]
     gistsync check [--token=<token>]
 '''
@@ -24,7 +24,6 @@ import logging
 
 import docopt
 import github
-from fsoopify import DirectoryInfo
 
 from gistsync.cmd import cmd, invoke
 from gistsync.global_settings import GlobalSettings
@@ -43,6 +42,10 @@ class OptionsProxy:
     @property
     def gist_id(self):
         return self._data['<gist-id>']
+
+    @property
+    def public(self):
+        return self._data['--public']
 
     def __repr__(self):
         return repr(self._data)
@@ -73,6 +76,9 @@ class Context:
             assert self.token
             self._github_client = github.Github(self.token)
         return self._github_client
+
+    def get_user(self):
+        return self.github_client.get_user()
 
     def get_gists(self):
         if self._gists is None:
@@ -145,7 +151,7 @@ def pull(context: Context):
         gist_dir.pull(context)
     else:
         logger = context.get_logger(None)
-        logger.error(f'{gist_dir.get_abs_path()} is not a gist dir.')
+        logger.error(f'<{gist_dir.get_abs_path()}> is not a gist dir.')
 
 @cmd('push')
 def push(context: Context):
@@ -153,8 +159,7 @@ def push(context: Context):
     if gist_dir.is_gist_dir():
         gist_dir.push(context)
     else:
-        logger = context.get_logger(None)
-        logger.error(f'{gist_dir.get_abs_path()} is not a gist dir.')
+        gist_dir.push_new(context)
 
 @cmd('check')
 def check(context: Context):
@@ -163,7 +168,7 @@ def check(context: Context):
         gist_dir.check(context)
     else:
         logger = context.get_logger(None)
-        logger.error(f'{gist_dir.get_abs_path()} is not a gist dir.')
+        logger.error(f'<{gist_dir.get_abs_path()}> is not a gist dir.')
 
 
 def main(argv=None):

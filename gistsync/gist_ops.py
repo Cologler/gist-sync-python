@@ -16,17 +16,17 @@ from jasily.io.hash import Sha1Algorithm
 from gistsync.consts import GIST_CONFIG_NAME
 
 class ConfigBuilder:
-    def __init__(self, gist):
-        self._gist = gist
+    def __init__(self, gist=None):
+        self.gist = gist
         self._files = []
 
     def get_updated_at(self):
-        return self._gist.updated_at.isoformat(timespec='seconds')
+        return self.gist.updated_at.isoformat(timespec='seconds')
 
     def dump(self, dir_info: DirectoryInfo):
         file_info = dir_info.get_fileinfo(GIST_CONFIG_NAME)
         file_info.dump({
-            'id': self._gist.id,
+            'id': self.gist.id,
             'updated_at': self.get_updated_at(),
             'files': self._files
         })
@@ -37,6 +37,28 @@ class ConfigBuilder:
             'sha1': Sha1Algorithm().calc_file(file_info.path)
         })
 
+def get_files(dir_info: DirectoryInfo, config_builder: ConfigBuilder, logger):
+    update_content = {}
+    for item in dir_info.list_items():
+        if not isinstance(item, FileInfo):
+            continue
+        if item.path.name == GIST_CONFIG_NAME:
+            continue
+        if isinstance(item, FileInfo):
+            update_content[item.path.name] = github.InputFileContent(item.read_text())
+            config_builder.add_file(item)
+    return update_content
+
+def create_gist(user, dir_info: DirectoryInfo, public, logger):
+    '''push items from dir to new gist.'''
+    assert user and dir_info and logger
+
+    config_builder = ConfigBuilder()
+    files = get_files(dir_info, config_builder, logger)
+    gist = user.create_gist(public, files=files)
+    config_builder.gist = gist
+    config_builder.dump(dir_info)
+    logger.info(f'remote created at {config_builder.get_updated_at()}')
 
 def pull_gist(gist, dir_info: DirectoryInfo, logger):
     '''pull items from gist to dir.'''
@@ -74,15 +96,7 @@ def push_gist(gist, dir_info: DirectoryInfo, logger):
     assert gist and dir_info and logger
 
     config_builder = ConfigBuilder(gist)
-    update_content = {}
-    for item in dir_info.list_items():
-        if not isinstance(item, FileInfo):
-            continue
-        if item.path.name == GIST_CONFIG_NAME:
-            continue
-        if isinstance(item, FileInfo):
-            update_content[item.path.name] = github.InputFileContent(item.read_text())
-            config_builder.add_file(item)
+    update_content = get_files(dir_info, config_builder, logger)
     gist.edit(files=update_content)
     config_builder.dump(dir_info)
 
