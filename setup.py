@@ -35,6 +35,6 @@ setup(
     zip_safe=False,
     include_package_data=True,
     setup_requires=[],
-    install_requires=['requests', 'fsoopify', 'docopt', 'pygithub', 'jasily'],
+    install_requires=['requests', 'fsoopify', 'docopt', 'pygithub'],
     tests_require=[],
 )

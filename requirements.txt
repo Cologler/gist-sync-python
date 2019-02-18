@@ -2,4 +2,3 @@ requests
 fsoopify
 docopt
 pygithub
-jasily

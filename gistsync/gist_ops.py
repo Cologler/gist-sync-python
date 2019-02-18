@@ -7,13 +7,21 @@
 
 import os
 import tempfile
+import hashlib
 
 import requests
 import github
 from fsoopify import DirectoryInfo, FileInfo
-from jasily.io.hash import Sha1Algorithm
 
 from gistsync.consts import GIST_CONFIG_NAME
+
+def hash_sha1(path) -> str:
+    m = hashlib.sha1()
+    with open(path, 'rb') as fp:
+        for buf in fp.read(4096):
+            m.update(buf)
+    return m.hexdigest().upper()
+
 
 class ConfigBuilder:
     def __init__(self, gist=None):
@@ -34,7 +42,7 @@ class ConfigBuilder:
     def add_file(self, file_info: FileInfo):
         self._files.append({
             'name': file_info.path.name,
-            'sha1': Sha1Algorithm().calc_file(file_info.path)
+            'sha1': hash_sha1(file_info.path)
         })
 
 def get_files(dir_info: DirectoryInfo, config_builder: ConfigBuilder, logger):
@@ -118,5 +126,5 @@ def check_changed(config: dict, dir_info: DirectoryInfo):
         file_path = os.path.join(dir_info.path, file['name'])
         if not os.path.isfile(file_path):
             return True
-        if Sha1Algorithm().calc_file(file_path) != file['sha1']:
+        if hash_sha1(file_path) != file['sha1']:
             return True
