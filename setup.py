@@ -22,7 +22,7 @@ setup(
     packages=find_packages(),
     # auto generated:
     name='gist-sync',
-    version='0.2.1',
+    version='0.3.0',
     description='',
     keywords=[],
     author='cologler',

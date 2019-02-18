@@ -18,7 +18,10 @@ from gistsync.consts import GIST_CONFIG_NAME
 def hash_sha1(path) -> str:
     m = hashlib.sha1()
     with open(path, 'rb') as fp:
-        for buf in fp.read(4096):
+        while True:
+            buf = fp.read(4096)
+            if not buf:
+                break
             m.update(buf)
     return m.hexdigest().upper()
 

@@ -12,10 +12,10 @@ Usage:
     gistsync setup token <token>
     gistsync init-all [--token=<token>]
     gistsync init <gist-id> [--token=<token>]
-    gistsync sync [--token=<token>]
-    gistsync push [--token=<token>] [--public]
-    gistsync pull [--token=<token>]
-    gistsync check [--token=<token>]
+    gistsync sync [--token=<token>] [GIST_DIR]
+    gistsync push [--token=<token>] [--public] [GIST_DIR]
+    gistsync pull [--token=<token>] [GIST_DIR]
+    gistsync check [--token=<token>] [GIST_DIR]
 '''
 
 import sys
@@ -50,12 +50,19 @@ class OptionsProxy:
     def __repr__(self):
         return repr(self._data)
 
+    @property
+    def gist_dir(self):
+        return self._data['GIST_DIR'] or '.'
+
 
 class Context:
-    def __init__(self, opt):
+    def __init__(self, opt: OptionsProxy):
         self._opt = opt
         self._github_client = None
         self._gists = None
+
+    def get_gist_dir(self):
+        return GistDir(self._opt.gist_dir)
 
     @property
     def opt_proxy(self):
@@ -135,7 +142,7 @@ def init(context: Context):
 
 @cmd('sync')
 def sync(context: Context):
-    gist_dir = GistDir('.')
+    gist_dir = context.get_gist_dir()
     if gist_dir.is_gist_dir():
         gist_dir.sync(context)
     else:
@@ -146,7 +153,7 @@ def sync(context: Context):
 
 @cmd('pull')
 def pull(context: Context):
-    gist_dir = GistDir('.')
+    gist_dir = context.get_gist_dir()
     if gist_dir.is_gist_dir():
         gist_dir.pull(context)
     else:
@@ -155,7 +162,7 @@ def pull(context: Context):
 
 @cmd('push')
 def push(context: Context):
-    gist_dir = GistDir('.')
+    gist_dir = context.get_gist_dir()
     if gist_dir.is_gist_dir():
         gist_dir.push(context)
     else:
@@ -163,7 +170,7 @@ def push(context: Context):
 
 @cmd('check')
 def check(context: Context):
-    gist_dir = GistDir('.')
+    gist_dir = context.get_gist_dir()
     if gist_dir.is_gist_dir():
         gist_dir.check(context)
     else:
