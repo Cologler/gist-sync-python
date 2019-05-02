@@ -1,17 +1,12 @@
 [[source]]
-
 url = "https://pypi.python.org/simple"
 verify_ssl = true
 name = "pypi"
 
-
 [packages]
-
 requests = "*"
 fsoopify = "*"
-docopt = "*"
 pygithub = "*"
-
+click-anno = "*"
 
 [dev-packages]
-

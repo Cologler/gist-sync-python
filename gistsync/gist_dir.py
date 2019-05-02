@@ -7,6 +7,8 @@
 
 import os
 
+from click import get_current_context
+
 from fsoopify import DirectoryInfo
 
 from gistsync.consts import GIST_CONFIG_NAME
@@ -44,7 +46,17 @@ class GistDir(DirectoryInfo):
 
         push_gist(gist, self, logger)
 
+    def init(self, context, gist_id):
+        assert not self.is_gist_dir()
+
+        logger = context.get_logger(gist_id)
+        gist = context.get_gist(gist_id)
+
+        pull_gist(gist, self, logger)
+
     def pull(self, context):
+        assert self.is_gist_dir()
+
         gist_conf = self._load_gist_conf()
         gist_id = gist_conf['id']
         logger = context.get_logger(gist_id)

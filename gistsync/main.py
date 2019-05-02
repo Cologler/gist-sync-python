@@ -7,23 +7,14 @@
 
 #pylint: disable=C0111,C0103
 
-'''
-Usage:
-    gistsync setup token <token>
-    gistsync init-all [--token=<token>]
-    gistsync init <gist-id> [--token=<token>]
-    gistsync sync [--token=<token>] [GIST_DIR]
-    gistsync push [--token=<token>] [--public] [GIST_DIR]
-    gistsync pull [--token=<token>] [GIST_DIR]
-    gistsync check [--token=<token>] [GIST_DIR]
-'''
-
 import sys
 import traceback
 import logging
+import enum
 
-import docopt
 import github
+from click_anno import click_app
+from click_anno.types import flag
 
 from gistsync.cmd import cmd, invoke
 from gistsync.global_settings import GlobalSettings
@@ -31,51 +22,30 @@ from gistsync.gist_dir import GistDir
 
 SETTINGS = GlobalSettings()
 
-class OptionsProxy:
-    def __init__(self, opt):
-        self._data = opt
-
-    @property
-    def token(self):
-        return self._data['<token>'] or self._data['--token']
-
-    @property
-    def gist_id(self):
-        return self._data['<gist-id>']
-
-    @property
-    def public(self):
-        return self._data['--public']
-
-    def __repr__(self):
-        return repr(self._data)
-
-    @property
-    def gist_dir(self):
-        return self._data['GIST_DIR'] or '.'
+logger = logging.getLogger(f'gist-sync')
 
 
 class Context:
-    def __init__(self, opt: OptionsProxy):
-        self._opt = opt
+    def __init__(self):
         self._github_client = None
         self._gists = None
+        self._token = None
 
-    def get_gist_dir(self):
-        return GistDir(self._opt.gist_dir)
-
-    @property
-    def opt_proxy(self):
-        return self._opt
+    def get_gist_dir(self, gist_dir: str):
+        return GistDir(gist_dir or '.')
 
     @property
     def token(self):
         '''get required token.'''
-        tk = self._opt.token or SETTINGS.token
-        if not tk:
+        token = self._token or SETTINGS.token
+        if not token:
             self.get_logger(None).error('need access token.')
             exit()
-        return tk
+        return token
+
+    @token.setter
+    def token(self, value):
+        self._token = value
 
     @property
     def github_client(self):
@@ -106,87 +76,105 @@ class Context:
 
     def get_logger(self, gist_id):
         if gist_id is None:
-            return logging.getLogger(f'gist-sync')
+            return logger
         else:
-            return logging.getLogger(f'Gist({gist_id})')
+            return logger.getChild(f'Gist({gist_id})')
 
-@cmd('setup', 'token')
-def register(context: Context):
-    SETTINGS.token = context.opt_proxy.token
 
-@cmd('init-all')
-def init_all(context: Context):
-    for gist in context.get_gists():
-        gist_dir = GistDir(gist.id)
-        gist_dir.pull(context)
+class Props(enum.IntEnum):
+    token = enum.auto()
 
-@cmd('init')
-def init(context: Context):
-    gist_id = context.opt_proxy.gist_id
-    logger = context.get_logger(None)
 
-    def resolve(gist):
-        logger.info(f'match {gist}')
-        gist_dir = GistDir(gist.id)
-        gist_dir.pull(context)
+@click_app
+class App:
+    def _get_context(self, token):
+        return Context()
 
-    gist = context.get_gist(gist_id)
-    if gist is not None:
-        return resolve(gist)
+    def setup(self, name: Props, value):
+        if name == Props.token:
+            SETTINGS.token = value
 
-    for gist in context.get_gists():
-        if gist_id in gist.id:
+    def init_all(self, token=None):
+        context = Context()
+        context.token = token
+
+        for gist in context.get_gists():
+            gist_dir = GistDir(gist.id)
+            gist_dir.pull(context)
+
+    def init(self, gist_id, token=None, name=None):
+        context = Context()
+        context.token = token
+
+        logger = context.get_logger(None)
+
+        def resolve(gist):
+            logger.info(f'match {gist}')
+            gist_dir = GistDir(gist.id)
+            gist_dir.init(context, gist.id)
+
+        gist = context.get_gist(gist_id)
+        if gist is not None:
             return resolve(gist)
 
-    logger.error('no match gists found.')
+        for gist in context.get_gists():
+            if gist_id in gist.id:
+                return resolve(gist)
 
-@cmd('sync')
-def sync(context: Context):
-    gist_dir = context.get_gist_dir()
-    if gist_dir.is_gist_dir():
-        gist_dir.sync(context)
-    else:
-        for item in gist_dir.list_items():
-            sub_gist_dir = GistDir(item.path)
-            if sub_gist_dir.is_gist_dir():
-                sub_gist_dir.sync(context)
+        logger.error('no match gists found.')
 
-@cmd('pull')
-def pull(context: Context):
-    gist_dir = context.get_gist_dir()
-    if gist_dir.is_gist_dir():
-        gist_dir.pull(context)
-    else:
-        logger = context.get_logger(None)
-        logger.error(f'<{gist_dir.get_abs_path()}> is not a gist dir.')
+    def sync(self, gist_dir=None, token=None):
+        context = Context()
+        context.token = token
 
-@cmd('push')
-def push(context: Context):
-    gist_dir = context.get_gist_dir()
-    if gist_dir.is_gist_dir():
-        gist_dir.push(context)
-    else:
-        gist_dir.push_new(context)
+        gist_dir = context.get_gist_dir(gist_dir)
+        if gist_dir.is_gist_dir():
+            gist_dir.sync(context)
+        else:
+            for item in gist_dir.list_items():
+                sub_gist_dir = GistDir(item.path)
+                if sub_gist_dir.is_gist_dir():
+                    sub_gist_dir.sync(context)
 
-@cmd('check')
-def check(context: Context):
-    gist_dir = context.get_gist_dir()
-    if gist_dir.is_gist_dir():
-        gist_dir.check(context)
-    else:
-        logger = context.get_logger(None)
-        logger.error(f'<{gist_dir.get_abs_path()}> is not a gist dir.')
+    def pull(self, gist_dir=None, token=None):
+        context = Context()
+        context.token = token
+
+        gist_dir = context.get_gist_dir(gist_dir)
+        if gist_dir.is_gist_dir():
+            gist_dir.pull(context)
+        else:
+            logger = context.get_logger(None)
+            logger.error(f'<{gist_dir.get_abs_path()}> is not a gist dir.')
+
+    def push(self, gist_dir=None, public: flag=False, token=None):
+        context = Context()
+        context.token = token
+
+        gist_dir = context.get_gist_dir(gist_dir)
+        if gist_dir.is_gist_dir():
+            gist_dir.push(context)
+        else:
+            gist_dir.push_new(context)
+
+    def check(self, gist_dir=None, token=None):
+        context = Context()
+        context.token = token
+
+        gist_dir = context.get_gist_dir(gist_dir)
+        if gist_dir.is_gist_dir():
+            gist_dir.check(context)
+        else:
+            logger = context.get_logger(None)
+            logger.error(f'<{gist_dir.get_abs_path()}> is not a gist dir.')
 
 
 def main(argv=None):
     if argv is None:
         argv = sys.argv
     try:
-        logging.basicConfig(level=logging.INFO)
-        opt = docopt.docopt(__doc__)
-        opt_proxy = OptionsProxy(opt)
-        context = Context(opt_proxy)
-        assert invoke(opt, context)
+        logger.setLevel(level=logging.INFO)
+        App()
     except Exception: # pylint: disable=W0703
         traceback.print_exc()
 

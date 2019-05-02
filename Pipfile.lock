@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "308478429bac5b8389bf3425951eac581b118b73f9533a2af94ce7cfd7ade2f2"
+            "sha256": "e2c26fe63fa5443e842ec249a8b5de20f578121a2e145e3f4de2d378396bff0d"
         },
         "pipfile-spec": 6,
         "requires": {},
@@ -28,6 +28,21 @@
             ],
             "version": "==3.0.4"
         },
+        "click": {
+            "hashes": [
+                "sha256:2335065e6395b9e67ca716de5f7526736bfa6ceead690adf616d925bdc622b13",
+                "sha256:5b94b49521f6456670fdb30cd82a4eca9412788a93fa6dd6df72c94d5a8ff2d7"
+            ],
+            "version": "==7.0"
+        },
+        "click-anno": {
+            "hashes": [
+                "sha256:5b1aec890c0a685faca1d2c0b9fc7111d37286a3a0be82261181b06008e2c349",
+                "sha256:71494ee1d5c06c87d6c133e8ab3345700d22f9438f04893498b3559701295a3d"
+            ],
+            "index": "pypi",
+            "version": "==0.0.5"
+        },
         "deprecated": {
             "hashes": [
                 "sha256:2f293eb0eee34b1fcf3da530fe8fc4b0d71d43ddc2dc78e2ffb444b6c0868557",
@@ -44,11 +59,11 @@
         },
         "fsoopify": {
             "hashes": [
-                "sha256:08a1e70b9bef39ecc35c3363c83376c5427def8b62b4a732e75cccd34fdc3b4a",
-                "sha256:a1b007862f3e53df2b28b3fc0a3bf6539eba71b2c985d0f424b852f1af46885d"
+                "sha256:46ccd3bae04ee810ed0f8b4039e0c167b52c1e4b2f92f97afd3351d443f0ae7b",
+                "sha256:e98fd3ddee26efd01b90c0543542327b6880f054e7744d943bdd2394a7cac165"
             ],
             "index": "pypi",
-            "version": "==0.2.2"
+            "version": "==0.2.4"
         },
         "idna": {
             "hashes": [
