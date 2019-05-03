@@ -9,7 +9,7 @@ import os
 
 from click import get_current_context
 
-from fsoopify import DirectoryInfo
+from fsoopify import DirectoryInfo, NodeType
 
 from gistsync.consts import GIST_CONFIG_NAME
 from gistsync.gist_ops import create_gist, pull_gist, push_gist, check_changed
@@ -100,3 +100,22 @@ class GistDir(DirectoryInfo):
             pull_gist(gist, self, logger)
         else:
             logger.info(f'{self.path.name}: nothing was changed since last sync.')
+
+    def get_diff_files(self):
+        ''' gets added and deleted file names as list. '''
+
+        added = []
+        deled = []
+        files_in_disk = set(str(z.path.name) for z in self.list_gist_files())
+        files_in_conf = set(z['name'] for z in self._gist_conf['files'])
+        added = files_in_disk.difference(files_in_conf)
+        deled = files_in_conf.difference(files_in_disk)
+        return list(added), list(deled)
+
+    def list_gist_files(self):
+        ret = []
+        for item in self.list_items():
+            if item.node_type == NodeType.file:
+                if item.path.name != GIST_CONFIG_NAME:
+                    ret.append(item)
+        return ret

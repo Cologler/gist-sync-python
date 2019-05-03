@@ -14,7 +14,7 @@ import github
 from fsoopify import DirectoryInfo, FileInfo
 
 from gistsync.consts import GIST_CONFIG_NAME
-from .utils import format_gist_updated_at()
+from .utils import format_gist_updated_at
 
 def hash_sha1(path) -> str:
     m = hashlib.sha1()
@@ -50,6 +50,8 @@ class ConfigBuilder:
         })
 
 def get_files(dir_info: DirectoryInfo, config_builder: ConfigBuilder, logger):
+    '''get the files as a dict which use as argument for github api.'''
+
     update_content = {}
     for item in dir_info.list_items():
         if not isinstance(item, FileInfo):
@@ -59,6 +61,7 @@ def get_files(dir_info: DirectoryInfo, config_builder: ConfigBuilder, logger):
         if isinstance(item, FileInfo):
             update_content[item.path.name] = github.InputFileContent(item.read_text())
             config_builder.add_file(item)
+
     return update_content
 
 def create_gist(user, dir_info: DirectoryInfo, public, logger):
@@ -105,18 +108,28 @@ def pull_gist(gist, dir_info: DirectoryInfo, logger):
             file_info = dir_info.get_fileinfo(item.path.name)
             item.copy_to(file_info.path)
 
-        logger.info(f'local updated from remote <{config_builder.get_updated_at()}>')
+    logger.info(f'local updated from remote <{config_builder.get_updated_at()}>')
 
 def push_gist(gist, dir_info: DirectoryInfo, logger):
     '''push items from dir to gist.'''
     assert gist and dir_info and logger
 
+    added, deled = dir_info.get_diff_files()
+
     config_builder = ConfigBuilder(gist)
     update_content = get_files(dir_info, config_builder, logger)
+    for name in deled:
+        update_content[name] = None
     gist.edit(files=update_content)
     config_builder.dump(dir_info)
 
-    logger.info(f'remote updated at {config_builder.get_updated_at()}')
+    logger.info(f'remote updated at {format_gist_updated_at(gist)}')
+    if added:
+        z = ', '.join(added)
+        logger.info(f'remote added files: {z}')
+    if deled:
+        z = ', '.join(deled)
+        logger.info(f'remote deled files: {z}')
 
 def check_changed(config: dict, dir_info: DirectoryInfo):
     '''
