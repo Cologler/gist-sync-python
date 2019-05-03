@@ -14,6 +14,7 @@ import github
 from fsoopify import DirectoryInfo, FileInfo
 
 from gistsync.consts import GIST_CONFIG_NAME
+from .utils import format_gist_updated_at()
 
 def hash_sha1(path) -> str:
     m = hashlib.sha1()
@@ -69,7 +70,11 @@ def create_gist(user, dir_info: DirectoryInfo, public, logger):
     gist = user.create_gist(public, files=files)
     config_builder.gist = gist
     config_builder.dump(dir_info)
-    logger.info(f'remote created at {config_builder.get_updated_at()}')
+
+    type_ = 'public' if public else 'secret'
+    logger.info(f'remote created {type_} at {format_gist_updated_at(gist)}')
+    logger.info(f'gist id : {gist.id}')
+    logger.info(f'gist url: https://gist.github.com/{gist.id}')
 
 def pull_gist(gist, dir_info: DirectoryInfo, logger):
     '''pull items from gist to dir.'''

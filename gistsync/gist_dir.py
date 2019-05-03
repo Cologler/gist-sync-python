@@ -32,9 +32,8 @@ class GistDir(DirectoryInfo):
             self._gist_conf = self._gist_conf_file.load()
         return self._gist_conf
 
-    def push_new(self, context):
+    def push_new(self, context, public: bool):
         user = context.get_user()
-        public = context.opt_proxy.public
         logger = context.get_logger(None)
         create_gist(user, self, public, logger)
 

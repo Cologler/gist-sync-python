@@ -155,7 +155,7 @@ class App:
         if gist_dir.is_gist_dir():
             gist_dir.push(context)
         else:
-            gist_dir.push_new(context)
+            gist_dir.push_new(context, public)
 
     def check(self, gist_dir=None, token=None):
         context = Context()
