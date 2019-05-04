@@ -13,6 +13,7 @@ import logging
 import enum
 
 import github
+import click
 from click_anno import click_app
 from click_anno.types import flag
 
@@ -102,26 +103,33 @@ class App:
             gist_dir = GistDir(gist.id)
             gist_dir.pull(context)
 
-    def init(self, gist_id, token=None, name=None):
+    def init(self, ctx: click.Context, gist_id, token=None, name=None):
         context = Context()
         context.token = token
 
-        logger = context.get_logger(None)
+        def find_single():
+            gist = context.get_gist(gist_id)
+            if gist is not None:
+                return gist
+            gists = [g for g in context.get_gists() if gist_id in g.id]
+            if len(gists) == 1:
+                return gists[0]
+            if gists:
+                ctx.fail('match too many gists: \n{}'.format(
+                    '\n'.join(g.id for g in gists)
+                ))
+            else:
+                ctx.fail('no match gists found.')
 
         def resolve(gist):
             logger.info(f'match {gist}')
             gist_dir = GistDir(gist.id)
             gist_dir.init(context, gist.id)
 
-        gist = context.get_gist(gist_id)
-        if gist is not None:
-            return resolve(gist)
-
-        for gist in context.get_gists():
-            if gist_id in gist.id:
-                return resolve(gist)
-
-        logger.error('no match gists found.')
+        gist = find_single()
+        click.echo(f'match {gist}')
+        gist_dir = GistDir(gist.id)
+        gist_dir.init(context, gist.id)
 
     def sync(self, gist_dir=None, token=None):
         context = Context()
@@ -136,7 +144,7 @@ class App:
                 if sub_gist_dir.is_gist_dir():
                     sub_gist_dir.sync(context)
 
-    def pull(self, gist_dir=None, token=None):
+    def pull(self, ctx: click.Context, gist_dir=None, token=None):
         context = Context()
         context.token = token
 
@@ -144,10 +152,11 @@ class App:
         if gist_dir.is_gist_dir():
             gist_dir.pull(context)
         else:
-            logger = context.get_logger(None)
-            logger.error(f'<{gist_dir.get_abs_path()}> is not a gist dir.')
+            ctx.fail('{path} is not a gist dir.'.format(
+                path=click.style(str(gist_dir.path), fg='green')
+            ))
 
-    def push(self, gist_dir=None, public: flag=False, token=None):
+    def push(self, ctx: click.Context, gist_dir=None, public: flag=False, token=None):
         context = Context()
         context.token = token
 
@@ -157,7 +166,7 @@ class App:
         else:
             gist_dir.push_new(context, public)
 
-    def check(self, gist_dir=None, token=None):
+    def check(self, ctx: click.Context, gist_dir=None, token=None):
         context = Context()
         context.token = token
 
@@ -165,8 +174,9 @@ class App:
         if gist_dir.is_gist_dir():
             gist_dir.check(context)
         else:
-            logger = context.get_logger(None)
-            logger.error(f'<{gist_dir.get_abs_path()}> is not a gist dir.')
+            ctx.fail('{path} is not a gist dir.'.format(
+                path=click.style(str(gist_dir.path), fg='green')
+            ))
 
 
 def main(argv=None):
