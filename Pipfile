@@ -8,5 +8,6 @@ requests = "*"
 fsoopify = "*"
 pygithub = "*"
 click-anno = "*"
+colorama = "*"
 
 [dev-packages]
