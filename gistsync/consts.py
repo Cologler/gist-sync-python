@@ -6,3 +6,9 @@
 # ----------
 
 GIST_CONFIG_NAME = '.gist.json'
+
+class IOCKeys:
+    GLOBAL_SETTINGS = 'settings-global'
+    TOKEN = 'token'
+    ARGS_TOKEN = '<args:token>'
+    GITHUB_CLIENT = 'github-client'

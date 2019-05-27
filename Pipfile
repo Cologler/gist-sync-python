@@ -9,5 +9,6 @@ fsoopify = "*"
 pygithub = "*"
 click-anno = "*"
 colorama = "*"
+anyioc = "*"
 
 [dev-packages]
