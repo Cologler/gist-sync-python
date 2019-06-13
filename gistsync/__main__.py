@@ -5,7 +5,7 @@
 #
 # ----------
 
-from gistsync.main import main
-
 if __name__ == '__main__':
+    from gistsync.main import main
+
     main()

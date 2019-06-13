@@ -18,31 +18,31 @@ from click_anno import click_app
 from click_anno.types import flag
 from anyioc.g import get_namespace_provider
 
-from gistsync.global_settings import GlobalSettings
-from gistsync.gist_dir import GistDir
-from gistsync.consts import IOCKeys
+from .global_settings import GlobalSettings
+from .gist_dir import GistDir
+from .consts import IoCKeys
 
 provider = get_namespace_provider()
 
-provider.register_singleton(IOCKeys.GLOBAL_SETTINGS, GlobalSettings)
+provider.register_singleton(IoCKeys.GLOBAL_SETTINGS, GlobalSettings)
 
 
 SETTINGS = GlobalSettings()
 
 logger = logging.getLogger(f'gist-sync')
 
-@provider.register_transient(IOCKeys.TOKEN)
+@provider.register_transient(IoCKeys.TOKEN)
 def _get_token(ioc):
-    token = ioc.get(IOCKeys.ARGS_TOKEN) or ioc[IOCKeys.GLOBAL_SETTINGS].token
+    token = ioc.get(IoCKeys.ARGS_TOKEN) or ioc[IoCKeys.GLOBAL_SETTINGS].token
     if not token:
         return click.get_current_context().fail(
             'need access token.'
         )
     return token
 
-@provider.register_singleton(IOCKeys.GITHUB_CLIENT)
+@provider.register_singleton(IoCKeys.GITHUB_CLIENT)
 def _get_github_client(ioc):
-    token = ioc[IOCKeys.TOKEN]
+    token = ioc[IoCKeys.TOKEN]
     assert token
     return github.Github(token)
 
@@ -57,7 +57,7 @@ class Context:
 
     @property
     def github_client(self):
-        return provider[IOCKeys.GITHUB_CLIENT]
+        return provider[IoCKeys.GITHUB_CLIENT]
 
     def get_gists(self):
         if self._gists is None:
@@ -97,7 +97,7 @@ class App:
 
     def init_all(self, token=None):
         context = Context()
-        provider.register_value(IOCKeys.ARGS_TOKEN, token)
+        provider.register_value(IoCKeys.ARGS_TOKEN, token)
 
         for gist in context.get_gists():
             gist_dir = GistDir(gist.id)
@@ -105,7 +105,7 @@ class App:
 
     def init(self, ctx: click.Context, gist_id, token=None, name=None):
         context = Context()
-        provider.register_value(IOCKeys.ARGS_TOKEN, token)
+        provider.register_value(IoCKeys.ARGS_TOKEN, token)
 
         def find_single():
             gist = context.get_gist(gist_id)
@@ -133,7 +133,7 @@ class App:
 
     def sync(self, gist_dir=None, token=None):
         context = Context()
-        provider.register_value(IOCKeys.ARGS_TOKEN, token)
+        provider.register_value(IoCKeys.ARGS_TOKEN, token)
 
         gist_dir = context.get_gist_dir(gist_dir)
         if gist_dir.is_gist_dir():
@@ -146,7 +146,7 @@ class App:
 
     def pull(self, ctx: click.Context, gist_dir=None, token=None):
         context = Context()
-        provider.register_value(IOCKeys.ARGS_TOKEN, token)
+        provider.register_value(IoCKeys.ARGS_TOKEN, token)
 
         gist_dir = context.get_gist_dir(gist_dir)
         if gist_dir.is_gist_dir():
@@ -158,7 +158,7 @@ class App:
 
     def push(self, ctx: click.Context, gist_dir=None, public: flag=False, token=None):
         context = Context()
-        provider.register_value(IOCKeys.ARGS_TOKEN, token)
+        provider.register_value(IoCKeys.ARGS_TOKEN, token)
 
         gist_dir = context.get_gist_dir(gist_dir)
         if gist_dir.is_gist_dir():
@@ -168,7 +168,7 @@ class App:
 
     def check(self, ctx: click.Context, gist_dir=None, token=None):
         context = Context()
-        provider.register_value(IOCKeys.ARGS_TOKEN, token)
+        provider.register_value(IoCKeys.ARGS_TOKEN, token)
 
         gist_dir = context.get_gist_dir(gist_dir)
         if gist_dir.is_gist_dir():

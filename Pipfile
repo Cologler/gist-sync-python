@@ -12,3 +12,4 @@ colorama = "*"
 anyioc = "*"
 
 [dev-packages]
+pytest = "*"

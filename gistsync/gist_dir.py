@@ -11,8 +11,8 @@ from click import get_current_context
 from fsoopify import DirectoryInfo, NodeType
 from anyioc.g import get_namespace_provider
 
-from gistsync.consts import GIST_CONFIG_NAME, IOCKeys
-from gistsync.gist_ops import create_gist, pull_gist, push_gist, check_changed
+from .consts import GIST_CONFIG_NAME, IoCKeys
+from .gist_ops import create_gist, pull_gist, push_gist, check_changed
 
 provider = get_namespace_provider()
 
@@ -35,7 +35,7 @@ class GistDir(DirectoryInfo):
         return self._gist_conf
 
     def push_new(self, context, public: bool):
-        user = provider[IOCKeys.GITHUB_CLIENT].get_user()
+        user = provider[IoCKeys.GITHUB_CLIENT].get_user()
         logger = context.get_logger(None)
         create_gist(user, self, public, logger)
 
