@@ -16,11 +16,11 @@
     "default": {
         "anyioc": {
             "hashes": [
-                "sha256:3689ef5acf44b463772d3d5f37cf59767f7df3d2fdc3135b3ea1ee0abe5dfc61",
-                "sha256:ad2cd8ad61dfe74871021fd16cc12d01c6e991cd77cd31533c775e6cb63cf298"
+                "sha256:6e77b15e3049bec330e6248e2449bc77ae18e52f1367195d6b646b66050305f3",
+                "sha256:bfeb3f48c1c40c974902b1e6a5af9569a31f4f8e63e696603c8cb89edfc13911"
             ],
             "index": "pypi",
-            "version": "==0.7.1"
+            "version": "==0.7.2"
         },
         "certifi": {
             "hashes": [

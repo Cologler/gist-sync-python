@@ -31,7 +31,7 @@ SETTINGS = GlobalSettings()
 
 logger = logging.getLogger(f'gist-sync')
 
-@provider.register_transient(IoCKeys.TOKEN)
+@provider.builder.transient(IoCKeys.TOKEN)
 def _get_token(ioc):
     token = ioc.get(IoCKeys.ARGS_TOKEN) or ioc[IoCKeys.GLOBAL_SETTINGS].token
     if not token:
@@ -40,7 +40,7 @@ def _get_token(ioc):
         )
     return token
 
-@provider.register_singleton(IoCKeys.GITHUB_CLIENT)
+@provider.builder.singleton(IoCKeys.GITHUB_CLIENT)
 def _get_github_client(ioc):
     token = ioc[IoCKeys.TOKEN]
     assert token
@@ -56,7 +56,7 @@ class Context:
         return GistDir(gist_dir or '.')
 
     @property
-    def github_client(self):
+    def github_client(self) -> github.Github:
         return provider[IoCKeys.GITHUB_CLIENT]
 
     def get_gists(self):
@@ -74,6 +74,7 @@ class Context:
                 return None
         if self._gists is not None and gist is not None:
             self._gists[gist.id] = gist
+
         return gist
 
     def get_logger(self, gist_id):

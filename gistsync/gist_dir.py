@@ -21,7 +21,7 @@ class GistDir(DirectoryInfo):
     def __init__(self, *args):
         super().__init__(*args)
         self._gist_conf_file = self.get_fileinfo(GIST_CONFIG_NAME)
-        self._gist_conf = None
+        self._gist_conf: dict = None
 
     def get_abs_path(self):
         return os.path.abspath(self.path)
