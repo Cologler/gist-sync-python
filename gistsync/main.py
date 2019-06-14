@@ -29,6 +29,7 @@ provider.register_singleton(IoCKeys.GLOBAL_SETTINGS, GlobalSettings)
 
 SETTINGS = GlobalSettings()
 
+logging.basicConfig()
 logger = logging.getLogger(f'gist-sync')
 
 @provider.builder.transient(IoCKeys.TOKEN)
