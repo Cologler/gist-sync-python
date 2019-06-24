@@ -1,4 +1,6 @@
 requests
 fsoopify
-docopt
 pygithub
+click-anno
+colorama
+anyioc

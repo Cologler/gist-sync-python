@@ -22,7 +22,7 @@ setup(
     packages=find_packages(),
     # auto generated:
     name='gist-sync',
-    version='0.3.0',
+    version='0.4.0',
     description='',
     keywords=[],
     author='cologler',
@@ -35,6 +35,6 @@ setup(
     zip_safe=False,
     include_package_data=True,
     setup_requires=[],
-    install_requires=['requests', 'fsoopify', 'docopt', 'pygithub'],
+    install_requires=['requests', 'fsoopify', 'pygithub', 'click-anno', 'colorama', 'anyioc'],
     tests_require=[],
 )
