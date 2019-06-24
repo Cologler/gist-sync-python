@@ -13,3 +13,4 @@ anyioc = "*"
 
 [dev-packages]
 pytest = "*"
+setupmeta-builder = "*"
