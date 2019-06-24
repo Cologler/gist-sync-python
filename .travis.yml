@@ -1,0 +1,15 @@
+language: python
+dist: xenial
+sudo: true
+python:
+  - '3.7'
+script:
+  - pipenv install --dev
+deploy:
+  provider: pypi
+  user: $PYPI_USER
+  password: $PYPI_PW
+  distributions: "sdist bdist_wheel"
+  skip_existing: true
+  on:
+    tags: true
