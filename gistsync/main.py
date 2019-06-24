@@ -94,10 +94,12 @@ class App:
         return Context()
 
     def setup(self, name: Props, value):
+        'setup name value pair'
         if name == Props.token:
             SETTINGS.token = value
 
     def init_all(self, token=None):
+        'init all gists in current directory'
         context = Context()
         provider.register_value(IoCKeys.ARGS_TOKEN, token)
 
@@ -106,6 +108,7 @@ class App:
             gist_dir.pull(context)
 
     def init(self, ctx: click.Context, gist_id, token=None, name=None):
+        'init the gist in current directory'
         context = Context()
         provider.register_value(IoCKeys.ARGS_TOKEN, token)
 
@@ -134,6 +137,7 @@ class App:
         gist_dir.init(context, gist.id)
 
     def sync(self, gist_dir=None, token=None):
+        'sync current directory as a gist'
         context = Context()
         provider.register_value(IoCKeys.ARGS_TOKEN, token)
 
@@ -147,6 +151,7 @@ class App:
                     sub_gist_dir.sync(context)
 
     def pull(self, ctx: click.Context, gist_dir=None, token=None):
+        'pull current directory as a gist'
         context = Context()
         provider.register_value(IoCKeys.ARGS_TOKEN, token)
 
@@ -159,6 +164,7 @@ class App:
             ))
 
     def push(self, ctx: click.Context, gist_dir=None, public: flag=False, token=None):
+        'push current directory as a gist'
         context = Context()
         provider.register_value(IoCKeys.ARGS_TOKEN, token)
 
@@ -169,6 +175,7 @@ class App:
             gist_dir.push_new(context, public)
 
     def check(self, ctx: click.Context, gist_dir=None, token=None):
+        'check the status of current directory'
         context = Context()
         provider.register_value(IoCKeys.ARGS_TOKEN, token)
 
