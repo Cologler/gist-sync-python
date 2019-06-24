@@ -1,6 +1,0 @@
-requests
-fsoopify
-pygithub
-click-anno
-colorama
-anyioc
