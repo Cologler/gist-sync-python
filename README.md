@@ -33,7 +33,7 @@ init gist, edit it, and sync!
 from pypi.
 
 ``` py
-pip install gist-sync
+pip install gistsync
 ```
 
 😀
