@@ -21,6 +21,7 @@ from anyioc.g import get_namespace_provider
 from .global_settings import GlobalSettings
 from .gist_dir import GistDir
 from .consts import IoCKeys
+from .utils import find_gist_id
 
 provider = get_namespace_provider()
 
@@ -111,6 +112,8 @@ class App:
         'init the gist in current directory'
         context = Context()
         provider.register_value(IoCKeys.ARGS_TOKEN, token)
+
+        gist_id = find_gist_id(gist_id)
 
         def find_single():
             gist = context.get_gist(gist_id)
