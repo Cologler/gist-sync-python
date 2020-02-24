@@ -62,22 +62,13 @@ class Context:
         return provider[IoCKeys.GITHUB_CLIENT]
 
     def get_gists(self):
-        if self._gists is None:
-            self._gists = {}
-            for gist in self.github_client.get_user().get_gists():
-                self._gists[gist.id] = gist
-        return list(self._gists.values())
+        return self.github_client.get_user().get_gists()
 
     def get_gist(self, gist_id, newest=False):
-        if self._gists is None or newest:
-            try:
-                gist = self.github_client.get_gist(gist_id)
-            except github.UnknownObjectException:
-                return None
-        if self._gists is not None and gist is not None:
-            self._gists[gist.id] = gist
-
-        return gist
+        try:
+            return self.github_client.get_gist(gist_id)
+        except github.UnknownObjectException:
+            return None
 
     def get_logger(self, gist_id):
         if gist_id is None:
@@ -115,13 +106,25 @@ class App:
 
         gist_id = find_gist_id(gist_id)
 
+        def try_match(gist):
+            if gist_id in gist.id:
+                logger.info(f'id of {gist} contains "{gist_id}".')
+                return True
+            if gist_id in gist.files:
+                logger.info(f'{gist} contains file "{gist_id}".')
+                return True
+
         def find_single():
             gist = context.get_gist(gist_id)
             if gist is not None:
                 return gist
-            gists = [g for g in context.get_gists() if gist_id in g.id]
+            else:
+                logger.info(f'"https://gist.github.com/{gist_id}" does not exists, try find from keywords...')
+
+            gists = [g for g in context.get_gists() if try_match(g)]
             if len(gists) == 1:
                 return gists[0]
+
             if gists:
                 ctx.fail('match too many gists: \n{}'.format(
                     '\n'.join(g.id for g in gists)
@@ -129,14 +132,9 @@ class App:
             else:
                 ctx.fail('no match gists found.')
 
-        def resolve(gist):
-            logger.info(f'match {gist}')
-            gist_dir = GistDir(gist.id)
-            gist_dir.init(context, gist.id)
-
         gist = find_single()
-        click.echo(f'match {gist}')
-        gist_dir = GistDir(gist.id)
+        logger.info(f'matched {gist}')
+        gist_dir = GistDir(name or gist.id)
         gist_dir.init(context, gist.id)
 
     def sync(self, gist_dir=None, token=None):
