@@ -12,7 +12,7 @@ from fsoopify import DirectoryInfo, NodeType
 from anyioc.g import get_namespace_provider
 
 from .consts import GIST_CONFIG_NAME, IoCKeys
-from .gist_ops import create_gist, pull_gist, push_gist, check_changed
+from .gist_ops import create_gist, pull_gist, push_gist, check_local_changed, check_changed, Changes
 
 provider = get_namespace_provider()
 
@@ -71,14 +71,13 @@ class GistDir(DirectoryInfo):
         logger = context.get_logger(gist_id)
         gist = context.get_gist(gist_id)
 
-        is_local_changed = check_changed(gist_conf, self)
-        is_cloud_changed = gist.updated_at.isoformat(timespec='seconds') != gist_conf['updated_at']
+        changes = check_changed(gist_conf, gist, self)
 
-        if is_cloud_changed and is_local_changed:
+        if changes == Changes.both_changed:
             logger.info('both local and remote all already changed.')
-        elif is_local_changed:
+        elif changes == Changes.local_changed:
             logger.info('detected local is updated.')
-        elif is_cloud_changed:
+        elif changes == changes.cloud_changed:
             logger.info('detected remote is updated.')
         else:
             logger.info('nothing was changed since last sync.')
@@ -89,15 +88,14 @@ class GistDir(DirectoryInfo):
         logger = context.get_logger(gist_id)
         gist = context.get_gist(gist_id)
 
-        is_local_changed = check_changed(gist_conf, self)
-        is_cloud_changed = gist.updated_at.isoformat(timespec='seconds') != gist_conf['updated_at']
+        changes = check_changed(gist_conf, gist, self)
 
-        if is_cloud_changed and is_local_changed:
+        if changes == Changes.both_changed:
             logger.info('conflict: local gist and remote gist already changed.')
-        elif is_local_changed:
+        elif changes == Changes.local_changed:
             logger.info('detected local is updated, pushing...')
             push_gist(gist, self, logger)
-        elif is_cloud_changed:
+        elif changes == changes.cloud_changed:
             logger.info('detected cloud is updated, pulling...')
             pull_gist(gist, self, logger)
         else:

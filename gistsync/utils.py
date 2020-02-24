@@ -21,3 +21,7 @@ def find_gist_id(input_str: str) -> str:
         return m[0]
     return input_str
 
+def get_gist_version(gist) -> str:
+    'get latest gist version'
+
+    return gist.history[0].version

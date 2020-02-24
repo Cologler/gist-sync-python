@@ -8,13 +8,14 @@
 import os
 import tempfile
 import hashlib
+from enum import IntEnum, auto
 
 import requests
 import github
 from fsoopify import DirectoryInfo, FileInfo
 
 from gistsync.consts import GIST_CONFIG_NAME
-from .utils import format_gist_updated_at
+from .utils import format_gist_updated_at, get_gist_version
 
 def hash_sha1(path) -> str:
     m = hashlib.sha1()
@@ -40,7 +41,8 @@ class ConfigBuilder:
         file_info.dump({
             'id': self.gist.id,
             'updated_at': self.get_updated_at(),
-            'files': self._files
+            'files': self._files,
+            'snapver': get_gist_version(self.gist)
         })
 
     def add_file(self, file_info: FileInfo):
@@ -131,7 +133,13 @@ def push_gist(gist, dir_info: DirectoryInfo, logger):
         z = ', '.join(deled)
         logger.info(f'remote deled files: {z}')
 
-def check_changed(config: dict, dir_info: DirectoryInfo):
+class Changes(IntEnum):
+    no_changes = auto()
+    local_changed = auto()
+    cloud_changed = auto()
+    both_changed = auto()
+
+def check_local_changed(config: dict, dir_info: DirectoryInfo):
     '''
     check whether the gist dir is changed.
     return True if changed.
@@ -149,3 +157,27 @@ def check_changed(config: dict, dir_info: DirectoryInfo):
             return True
         if hash_sha1(file_path) != file['sha1']:
             return True
+
+def check_cloud_changed(gist_conf: dict, gist):
+    '''
+    check whether the gist cloud is changed.
+    return True if changed.
+    '''
+    version = gist_conf.get('snapver')
+    if version is not None:
+        return version != get_gist_version(gist)
+    # some old gist_conf did not contains snapver:
+    return gist.updated_at.isoformat(timespec='seconds') != gist_conf['updated_at']
+
+def check_changed(gist_conf: dict, gist, dir_info: DirectoryInfo) -> Changes:
+    is_local_changed = check_local_changed(gist_conf, dir_info)
+    is_cloud_changed = check_cloud_changed(gist_conf, gist)
+
+    if is_cloud_changed and is_local_changed:
+        return Changes.both_changed
+    elif is_cloud_changed:
+        return Changes.cloud_changed
+    elif is_local_changed:
+        return Changes.local_changed
+    else:
+        return Changes.no_changes

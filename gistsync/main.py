@@ -154,7 +154,7 @@ class App:
                     sub_gist_dir.sync(context)
 
     def pull(self, ctx: click.Context, gist_dir=None, token=None):
-        'pull gist into current directory (which must be initialized).'
+        'pull gist from cloud to local (which must be initialized first).'
         context = Context()
         provider.register_value(IoCKeys.ARGS_TOKEN, token)
 

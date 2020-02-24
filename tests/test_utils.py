@@ -6,7 +6,6 @@
 # ----------
 
 def test_find_gist_id():
-    return
     from gistsync.utils import find_gist_id
     assert '8b5d44890d95c58ab41b0fb85cb05dce' == find_gist_id('8b5d44890d95c58ab41b0fb85cb05dce')
     assert '8b5d44890d95c58ab41b0fb85cb05dce' == find_gist_id('https://gist.github.com/Cologler/8b5d44890d95c58ab41b0fb85cb05dce')
