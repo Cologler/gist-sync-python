@@ -1,5 +1,7 @@
 # gist-sync-python
 
+[![Build Status](https://travis-ci.com/Cologler/gist-sync-python.svg?branch=master)](https://travis-ci.com/Cologler/gist-sync-python)
+
 Just sync gists with cli!
 
 ## HOW-TO-WORK
