@@ -4,8 +4,10 @@ sudo: true
 python:
   - '3.7'
   - '3.8'
-script:
+install:
   - pipenv install --dev
+script:
+  - python -m pytest
 deploy:
   provider: pypi
   user: $PYPI_USER
