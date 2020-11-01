@@ -15,7 +15,7 @@ import github
 from fsoopify import DirectoryInfo, FileInfo
 
 from gistsync.consts import GIST_CONFIG_NAME
-from .utils import format_gist_updated_at, get_gist_version
+from .utils import get_gist_version
 
 def hash_sha1(path) -> str:
     m = hashlib.sha1()
@@ -33,14 +33,10 @@ class ConfigBuilder:
         self.gist = gist
         self._files = []
 
-    def get_updated_at(self):
-        return self.gist.updated_at.isoformat(timespec='seconds')
-
     def dump(self, dir_info: DirectoryInfo):
         file_info = dir_info.get_fileinfo(GIST_CONFIG_NAME)
         file_info.dump({
             'id': self.gist.id,
-            'updated_at': self.get_updated_at(),
             'files': self._files,
             'snapver': get_gist_version(self.gist)
         })
@@ -77,7 +73,7 @@ def create_gist(user, dir_info: DirectoryInfo, public, logger):
     config_builder.dump(dir_info)
 
     type_ = 'public' if public else 'secret'
-    logger.info(f'remote created {type_} at {format_gist_updated_at(gist)}')
+    logger.info(f'a {type_} gist was created.')
     logger.info(f'gist id : {gist.id}')
     logger.info(f'gist url: https://gist.github.com/{gist.id}')
 
@@ -110,7 +106,7 @@ def pull_gist(gist, dir_info: DirectoryInfo, logger):
             file_info = dir_info.get_fileinfo(item.path.name)
             item.copy_to(file_info.path)
 
-    logger.info(f'local updated from remote <{config_builder.get_updated_at()}>')
+    logger.info('local updated from remote')
 
 def push_gist(gist, dir_info: DirectoryInfo, logger):
     '''push items from dir to gist.'''
@@ -125,7 +121,7 @@ def push_gist(gist, dir_info: DirectoryInfo, logger):
     gist.edit(files=update_content)
     config_builder.dump(dir_info)
 
-    logger.info(f'remote updated at {format_gist_updated_at(gist)}')
+    logger.info('remote updated.')
     if added:
         z = ', '.join(added)
         logger.info(f'remote added files: {z}')

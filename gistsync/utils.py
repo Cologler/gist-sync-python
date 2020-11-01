@@ -7,12 +7,6 @@
 
 import re
 
-def format_gist_updated_at(gist) -> str:
-    '''
-    format gist update_at as string.
-    '''
-    return gist.updated_at.isoformat(timespec='seconds')
-
 def find_gist_id(input_str: str) -> str:
     'try find a gist id from user input string.'
 
