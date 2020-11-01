@@ -4,10 +4,12 @@ sudo: true
 python:
   - '3.7'
   - '3.8'
+  - '3.9'
 install:
-  - pipenv install --dev --skip-lock
+    - pip install poetry
+    - poetry install
 script:
-  - python -m pytest
+    - python -m pytest
 deploy:
   provider: pypi
   user: $PYPI_USER
