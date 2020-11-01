@@ -15,17 +15,7 @@ import github
 from fsoopify import DirectoryInfo, FileInfo
 
 from gistsync.consts import GIST_CONFIG_NAME
-from .utils import get_gist_version
-
-def hash_sha1(path) -> str:
-    m = hashlib.sha1()
-    with open(path, 'rb') as fp:
-        while True:
-            buf = fp.read(4096)
-            if not buf:
-                break
-            m.update(buf)
-    return m.hexdigest().upper()
+from .utils import get_gist_version, compute_sha1
 
 
 class ConfigBuilder:
@@ -44,7 +34,7 @@ class ConfigBuilder:
     def add_file(self, file_info: FileInfo):
         self._files.append({
             'name': file_info.path.name,
-            'sha1': hash_sha1(file_info.path)
+            'sha1': compute_sha1(file_info.path)
         })
 
 def get_files(dir_info: DirectoryInfo, config_builder: ConfigBuilder, logger):
@@ -151,7 +141,7 @@ def check_local_changed(config: dict, dir_info: DirectoryInfo):
         file_path = os.path.join(dir_info.path, file['name'])
         if not os.path.isfile(file_path):
             return True
-        if hash_sha1(file_path) != file['sha1']:
+        if compute_sha1(file_path) != file['sha1']:
             return True
 
 def check_cloud_changed(gist_conf: dict, gist):
